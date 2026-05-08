@@ -792,9 +792,14 @@ async function fetchMetrics() {
       negotiation_rounds: c.negotiation_rounds === '' ? 0 : (c.negotiation_rounds || 0),
       sentiment: c.sentiment === '' ? null : c.sentiment,
     }));
+    const now = new Date();
     state.loads = (loadsData.loads || []).map(l => {
       const matchedCalls = state.rawCalls.filter(c => c.load_id === l.load_id);
       const bookedCall = matchedCalls.find(c => c.outcome === 'booked');
+      const pickup = new Date(l.pickup_datetime);
+      let status = 'open';
+      if (bookedCall) status = 'covered';
+      else if (pickup < now) status = 'expired';
       return {
         id: l.load_id,
         lane: [l.origin, l.destination],
@@ -802,7 +807,7 @@ async function fetchMetrics() {
         weight: l.weight || 0,
         listed_rate: l.loadboard_rate,
         agreed_rate: bookedCall ? (bookedCall.agreed_rate || null) : null,
-        status: bookedCall ? 'covered' : 'open',
+        status,
         pickup: l.pickup_datetime,
         delivery: l.delivery_datetime,
         calls: matchedCalls.length,
@@ -810,7 +815,7 @@ async function fetchMetrics() {
         miles: l.miles || 0,
       };
     });
-    state.carriers = aggregateCarriersLive(state.rawCalls);
+    state.carriers = aggregateCarriersLive(state.rawCalls, state.loads);
     state.lastFetch = new Date();
     document.getElementById('dataSourceBadge').textContent = 'live';
   } catch (err) {
@@ -826,26 +831,29 @@ async function fetchMetrics() {
   updateCounters();
 }
 
-function aggregateCarriersLive(calls) {
+function aggregateCarriersLive(calls, loads) {
   const map = {};
   for (const c of calls) {
     const key = c.mc_number || c.call_id;
     if (!key) continue;
     if (!map[key]) {
+      const matchedLoad = loads && c.load_id ? loads.find(l => l.id === c.load_id) : null;
+      const lane = matchedLoad ? matchedLoad.lane : ['Unknown', 'Unknown'];
       map[key] = {
-        idx: Object.keys(map).length, name: c.carrier_name || 'Unknown',
-        mc_number: c.mc_number || '', total: 0, booked: 0, declined: 0,
+        idx: Object.keys(map).length, name: c.carrier_name || 'Unknown carrier',
+        mc_number: c.mc_number || '—', total: 0, booked: 0, declined: 0,
         last_contact: c.timestamp, lanes: {},
         sentiments: { positive:0, neutral:0, negative:0 }, total_revenue: 0,
-        fmcsa_status: 'active', insurance_ok: true, safety_score: 85,
-        fleet_size: 10, preferred_lane: '', booking_rate: 0,
+        fmcsa_status: c.outcome === 'not_qualified' ? 'review' : 'active',
+        insurance_ok: c.outcome !== 'not_qualified',
+        safety_score: 85, fleet_size: 10, preferred_lane: lane, booking_rate: 0,
       };
     }
     const r = map[key];
     r.total++;
     if (c.outcome === 'booked') { r.booked++; r.total_revenue += (c.agreed_rate || 0); }
     if (c.outcome === 'declined') r.declined++;
-    if (c.sentiment) r.sentiments[c.sentiment]++;
+    if (c.sentiment) r.sentiments[c.sentiment] = (r.sentiments[c.sentiment] || 0) + 1;
     if (new Date(c.timestamp) > new Date(r.last_contact)) r.last_contact = c.timestamp;
     r.booking_rate = r.total ? +((r.booked / r.total) * 100).toFixed(1) : 0;
   }
