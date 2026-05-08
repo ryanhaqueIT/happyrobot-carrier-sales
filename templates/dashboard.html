@@ -1437,17 +1437,17 @@ function renderLoads() {
               <th class="py-2 font-semibold">Lane</th>
               <th class="py-2 font-semibold">Equipment</th>
               <th class="py-2 font-semibold">Pickup</th>
-              <th class="py-2 font-semibold text-right">Listed</th>
-              <th class="py-2 font-semibold text-right">Agreed</th>
-              <th class="py-2 font-semibold text-right">Margin</th>
-              <th class="py-2 font-semibold">Status</th>
+              <th class="py-2 pr-4 font-semibold text-right">Listed</th>
+              <th class="py-2 pr-4 font-semibold text-right">Agreed</th>
+              <th class="py-2 pr-6 font-semibold text-right">Margin</th>
+              <th class="pl-2 py-2 font-semibold">Status</th>
               <th class="px-5 py-2 font-semibold text-right">Calls</th>
             </tr>
           </thead>
           <tbody>${rows.map(l => {
             const m = l.agreed_rate ? ((l.agreed_rate - l.listed_rate) / l.listed_rate) * 100 : null;
             return `
-              <tr class="row-hover border-t border-black/[.04] dark:border-white/[.04] cursor-pointer transition">
+              <tr data-load-id="${l.id}" class="row-hover border-t border-black/[.04] dark:border-white/[.04] cursor-pointer transition">
                 <td class="px-5 py-2.5 row-cell mono text-[11.5px] font-medium">${l.id}</td>
                 <td class="py-2.5 row-cell">
                   <div class="flex items-center gap-1.5 text-[12.5px]">
@@ -1459,10 +1459,10 @@ function renderLoads() {
                 </td>
                 <td class="py-2.5 row-cell text-[11.5px] text-ink-600 dark:text-ink-300">${l.equipment}</td>
                 <td class="py-2.5 row-cell text-[11.5px]">${fmtDay(l.pickup)}</td>
-                <td class="py-2.5 row-cell text-right tabular text-[12px]">${fmtMoney(l.listed_rate)}</td>
-                <td class="py-2.5 row-cell text-right tabular text-[12px] ${l.agreed_rate ? 'font-semibold' : 'text-ink-400'}">${fmtMoney(l.agreed_rate)}</td>
-                <td class="py-2.5 row-cell text-right tabular text-[11.5px] ${m == null ? 'text-ink-400' : m >= 0 ? 'text-ok font-medium' : 'text-bad font-medium'}">${m == null ? '—' : (m >= 0 ? '+' : '') + m.toFixed(1) + '%'}</td>
-                <td class="py-2.5 row-cell">${loadStatusPill(l.status)}</td>
+                <td class="py-2.5 pr-4 row-cell text-right tabular text-[12px]">${fmtMoney(l.listed_rate)}</td>
+                <td class="py-2.5 pr-4 row-cell text-right tabular text-[12px] ${l.agreed_rate ? 'font-semibold' : 'text-ink-400'}">${fmtMoney(l.agreed_rate)}</td>
+                <td class="py-2.5 pr-6 row-cell text-right tabular text-[11.5px] ${m == null ? 'text-ink-400' : m >= 0 ? 'text-ok font-medium' : 'text-bad font-medium'}">${m == null ? '—' : (m >= 0 ? '+' : '') + m.toFixed(1) + '%'}</td>
+                <td class="pl-2 py-2.5 row-cell">${loadStatusPill(l.status)}</td>
                 <td class="px-5 py-2.5 row-cell text-right tabular text-[12px]">${l.calls}</td>
               </tr>`;
           }).join('')}</tbody>
@@ -1474,6 +1474,13 @@ function renderLoads() {
     document.querySelectorAll('#loadStatus .seg-btn').forEach(x => x.classList.remove('active'));
     b.classList.add('active'); renderLoadsTable();
   });
+  function attachLoadRowClicks() {
+    document.querySelectorAll('tr[data-load-id]').forEach(tr => {
+      tr.addEventListener('click', () => openLoadDrawer(tr.dataset.loadId));
+    });
+  }
+  const _origRenderLT = renderLoadsTable;
+  renderLoadsTable = function() { _origRenderLT(); attachLoadRowClicks(); };
   renderLoadsTable();
 
   // Hot lanes: aggregate calls by lane via load
@@ -1638,6 +1645,112 @@ function openCallDrawer(callId) {
   drawer.innerHTML = drawerHtml(c);
   drawer.classList.remove('hidden'); overlay.classList.remove('hidden');
   drawer.querySelector('[data-close]').addEventListener('click', closeDrawer);
+}
+
+function openLoadDrawer(loadId) {
+  const l = state.loads.find(x => x.id === loadId);
+  if (!l) return;
+  const drawer = document.getElementById('drawer');
+  const overlay = document.getElementById('drawerOverlay');
+  drawer.innerHTML = loadDrawerHtml(l);
+  drawer.classList.remove('hidden'); overlay.classList.remove('hidden');
+  drawer.querySelector('[data-close]').addEventListener('click', closeDrawer);
+}
+
+function loadDrawerHtml(l) {
+  const m = l.agreed_rate ? ((l.agreed_rate - l.listed_rate) / l.listed_rate) * 100 : null;
+  const matchedCalls = state.rawCalls.filter(c => c.load_id === l.id);
+  return `
+    <div class="sticky top-0 bg-surface dark:bg-night-900 border-b border-black/[.06] dark:border-white/[.06] px-5 py-3 flex items-center gap-2 z-10">
+      <button data-close class="w-7 h-7 rounded-md hover:bg-black/[.05] dark:hover:bg-white/[.05] flex items-center justify-center">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="text-[12px] text-ink-500">Load detail</div>
+      <span class="mono text-[11px] text-ink-400">${l.id}</span>
+      <div class="flex-1"></div>
+      ${loadStatusPill(l.status)}
+    </div>
+
+    <div class="p-5 space-y-5">
+      <div>
+        <div class="kicker-caps mb-1">${l.equipment} · ${l.commodity_type || 'general freight'}</div>
+        <div class="flex items-center gap-2 text-[20px] font-semibold tracking-tightish">
+          <span>${l.lane[0]}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-ink-400"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          <span>${l.lane[1]}</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div class="rounded-lg hairline p-3">
+          <div class="kicker-caps mb-1.5">Listed rate</div>
+          <div class="text-[18px] font-semibold tabular">${fmtMoney(l.listed_rate)}</div>
+          <div class="text-[10.5px] text-ink-400 mt-0.5">${l.miles ? '$' + (l.listed_rate / l.miles).toFixed(2) + '/mi' : ''}</div>
+        </div>
+        <div class="rounded-lg hairline p-3">
+          <div class="kicker-caps mb-1.5">Agreed rate</div>
+          <div class="text-[18px] font-semibold tabular ${l.agreed_rate ? '' : 'text-ink-400'}">${fmtMoney(l.agreed_rate)}</div>
+          <div class="text-[10.5px] mt-0.5 ${m == null ? 'text-ink-400' : m >= 0 ? 'text-ok' : 'text-bad'}">${m == null ? '—' : (m >= 0 ? '+' : '') + m.toFixed(1) + '% margin'}</div>
+        </div>
+        <div class="rounded-lg hairline p-3">
+          <div class="kicker-caps mb-1.5">Calls received</div>
+          <div class="text-[18px] font-semibold tabular">${l.calls}</div>
+          <div class="text-[10.5px] text-ink-400 mt-0.5">${l.bookings} booked</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="kicker mb-2">Load specs</div>
+        <div class="rounded-lg hairline divide-y divide-black/[.05] dark:divide-white/[.05]">
+          ${[
+            ['Load ID', `<span class="mono">${l.id}</span>`],
+            ['Origin', l.lane[0]],
+            ['Destination', l.lane[1]],
+            ['Pickup', fmtDayTime(l.pickup)],
+            ['Delivery', fmtDayTime(l.delivery)],
+            ['Equipment type', l.equipment],
+            ['Loadboard rate', fmtMoney(l.listed_rate)],
+            ['Weight', l.weight ? l.weight.toLocaleString() + ' lb' : '—'],
+            ['Commodity type', l.commodity_type || '—'],
+            ['Number of pieces', l.num_of_pieces || '—'],
+            ['Miles', l.miles ? l.miles.toLocaleString() + ' mi' : '—'],
+            ['Dimensions', l.dimensions || '—'],
+          ].map(([k,v]) => `
+            <div class="flex items-center justify-between px-3.5 py-2.5">
+              <div class="text-[11.5px] text-ink-500">${k}</div>
+              <div class="text-[12.5px] font-medium text-right">${v}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      ${l.notes ? `
+        <div>
+          <div class="kicker mb-2">Notes</div>
+          <div class="rounded-lg hairline p-3.5 text-[12.5px] text-ink-700 dark:text-ink-300 leading-relaxed">${l.notes}</div>
+        </div>
+      ` : ''}
+
+      ${matchedCalls.length ? `
+        <div>
+          <div class="kicker mb-2">Calls on this load (${matchedCalls.length})</div>
+          <div class="rounded-lg hairline divide-y divide-black/[.05] dark:divide-white/[.05]">
+            ${matchedCalls.map(c => `
+              <div class="px-3.5 py-2.5 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-[12.5px] font-medium truncate">${c.carrier_name || 'Unknown carrier'}</div>
+                  <div class="text-[10.5px] text-ink-400 mono">MC ${c.mc_number || '—'} · ${fmtDayTime(c.timestamp)}</div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  ${outcomePill(c.outcome)}
+                  <span class="tabular text-[12px] ${c.agreed_rate ? 'font-semibold' : 'text-ink-400'}">${fmtMoney(c.agreed_rate)}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 function closeDrawer() {
   document.getElementById('drawer').classList.add('hidden');
