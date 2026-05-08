@@ -1180,10 +1180,13 @@ function renderRecentTable(rows) {
             <th class="px-5 py-2 font-semibold">Time</th>
             <th class="py-2 font-semibold">Carrier</th>
             <th class="py-2 font-semibold">MC #</th>
+            <th class="py-2 font-semibold">Load</th>
+            <th class="py-2 font-semibold">Equipment</th>
             <th class="py-2 font-semibold">Outcome</th>
             <th class="py-2 font-semibold">Sentiment</th>
             <th class="py-2 font-semibold text-right">Agreed rate</th>
-            <th class="px-5 py-2 font-semibold text-right">Rounds</th>
+            <th class="py-2 font-semibold text-right">Rounds</th>
+            <th class="px-5 py-2 font-semibold text-right">Duration</th>
           </tr>
         </thead>
         <tbody>${rows.map(r => callRowHtml(r)).join('')}</tbody>
@@ -1199,17 +1202,29 @@ function callRowHtml(r) {
     <tr data-call-id="${r.call_id}" class="row-hover border-t border-black/[.04] dark:border-white/[.04] cursor-pointer transition">
       <td class="px-5 py-2.5 row-cell">
         <div class="text-[12px] font-medium">${fmtDayTime(r.timestamp)}</div>
-        <div class="text-[10.5px] text-ink-400 mono">${r.call_id}</div>
+        <div class="text-[10.5px] text-ink-400 mono">${(r.call_id || '').slice(0,8)}</div>
       </td>
       <td class="py-2.5 row-cell">
         <div class="text-[12.5px] font-medium ${r.carrier_name ? '' : 'italic text-ink-400'}">${r.carrier_name || 'Unknown carrier'}</div>
       </td>
       <td class="py-2.5 row-cell mono text-[11.5px] text-ink-500">${r.mc_number || '—'}</td>
+      <td class="py-2.5 row-cell mono text-[11.5px] text-ink-500">${r.load_id || '—'}</td>
+      <td class="py-2.5 row-cell text-[11.5px] text-ink-600 dark:text-ink-300">${r.equipment_type || '—'}</td>
       <td class="py-2.5 row-cell">${outcomePill(r.outcome)}</td>
       <td class="py-2.5 row-cell">${sentimentPill(r.sentiment)}</td>
-      <td class="py-2.5 row-cell text-right tabular ${r.agreed_rate != null ? 'font-semibold' : 'text-ink-400'}">${fmtMoney(r.agreed_rate)}</td>
-      <td class="px-5 py-2.5 row-cell text-right tabular text-[12px]">${r.negotiation_rounds}</td>
+      <td class="py-2.5 row-cell text-right tabular ${r.agreed_rate != null && r.agreed_rate !== '' ? 'font-semibold' : 'text-ink-400'}">${fmtMoney(r.agreed_rate)}</td>
+      <td class="py-2.5 row-cell text-right tabular text-[12px]">${r.negotiation_rounds || 0}</td>
+      <td class="px-5 py-2.5 row-cell text-right tabular text-[11.5px] text-ink-500">${fmtDuration(r.call_duration)}</td>
     </tr>`;
+}
+
+function fmtDuration(secs) {
+  if (secs == null || secs === '') return '—';
+  const s = Math.round(Number(secs));
+  if (isNaN(s)) return '—';
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return m > 0 ? `${m}m ${r}s` : `${r}s`;
 }
 
 // ──────────────────────────────────────────────────────

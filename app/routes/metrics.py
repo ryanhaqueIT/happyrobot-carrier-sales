@@ -36,8 +36,9 @@ async def get_metrics(_key: str = Depends(require_api_key)):
         ).fetchone()[0] or 0.0
 
         recent = conn.execute(
-            """SELECT call_id, carrier_name, mc_number, outcome, sentiment,
-                      agreed_rate, negotiation_rounds, timestamp
+            """SELECT call_id, carrier_name, mc_number, equipment_type, load_id,
+                      offered_rate, agreed_rate, outcome, sentiment,
+                      negotiation_rounds, call_duration, timestamp
                FROM calls ORDER BY timestamp DESC LIMIT 20"""
         ).fetchall()
 
