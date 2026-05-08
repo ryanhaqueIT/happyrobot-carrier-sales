@@ -813,6 +813,10 @@ async function fetchMetrics() {
         calls: matchedCalls.length,
         bookings: bookedCall ? 1 : 0,
         miles: l.miles || 0,
+        notes: l.notes || '',
+        commodity_type: l.commodity_type || '',
+        num_of_pieces: l.num_of_pieces || 0,
+        dimensions: l.dimensions || '',
       };
     });
     state.carriers = aggregateCarriersLive(state.rawCalls, state.loads);
@@ -1432,36 +1436,42 @@ function renderLoads() {
               <th class="px-5 py-2 font-semibold">Load</th>
               <th class="py-2 font-semibold">Lane</th>
               <th class="py-2 font-semibold">Equipment</th>
+              <th class="py-2 font-semibold">Commodity</th>
               <th class="py-2 font-semibold">Pickup</th>
+              <th class="py-2 font-semibold">Delivery</th>
+              <th class="py-2 font-semibold text-right">Miles</th>
+              <th class="py-2 font-semibold text-right">Weight</th>
+              <th class="py-2 font-semibold text-right">Pieces</th>
+              <th class="py-2 font-semibold">Dimensions</th>
               <th class="py-2 font-semibold text-right">Listed</th>
               <th class="py-2 font-semibold text-right">Agreed</th>
-              <th class="py-2 font-semibold text-right">Margin</th>
               <th class="py-2 font-semibold">Status</th>
-              <th class="px-5 py-2 font-semibold text-right">Calls</th>
+              <th class="px-5 py-2 font-semibold">Notes</th>
             </tr>
           </thead>
-          <tbody>${rows.map(l => {
-            const m = l.agreed_rate ? ((l.agreed_rate - l.listed_rate) / l.listed_rate) * 100 : null;
-            return `
+          <tbody>${rows.map(l => `
               <tr class="row-hover border-t border-black/[.04] dark:border-white/[.04] cursor-pointer transition">
                 <td class="px-5 py-2.5 row-cell mono text-[11.5px] font-medium">${l.id}</td>
                 <td class="py-2.5 row-cell">
                   <div class="flex items-center gap-1.5 text-[12.5px]">
-                    <span class="font-medium">${l.lane[0].split(',')[0]}</span>
+                    <span class="font-medium">${(l.lane[0]||'').split(',')[0]}</span>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-ink-400"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    <span class="font-medium">${l.lane[1].split(',')[0]}</span>
+                    <span class="font-medium">${(l.lane[1]||'').split(',')[0]}</span>
                   </div>
-                  <div class="text-[10.5px] text-ink-400 mt-0.5">${l.miles} mi · ${l.weight.toLocaleString()} lb</div>
                 </td>
                 <td class="py-2.5 row-cell text-[11.5px] text-ink-600 dark:text-ink-300">${l.equipment}</td>
+                <td class="py-2.5 row-cell text-[11.5px] text-ink-600 dark:text-ink-300">${l.commodity_type || '—'}</td>
                 <td class="py-2.5 row-cell text-[11.5px]">${fmtDay(l.pickup)}</td>
+                <td class="py-2.5 row-cell text-[11.5px]">${fmtDay(l.delivery)}</td>
+                <td class="py-2.5 row-cell text-right tabular text-[11.5px]">${l.miles ? l.miles.toLocaleString() : '—'}</td>
+                <td class="py-2.5 row-cell text-right tabular text-[11.5px]">${l.weight ? l.weight.toLocaleString() + ' lb' : '—'}</td>
+                <td class="py-2.5 row-cell text-right tabular text-[11.5px]">${l.num_of_pieces || '—'}</td>
+                <td class="py-2.5 row-cell text-[10.5px] text-ink-500">${l.dimensions || '—'}</td>
                 <td class="py-2.5 row-cell text-right tabular text-[12px]">${fmtMoney(l.listed_rate)}</td>
                 <td class="py-2.5 row-cell text-right tabular text-[12px] ${l.agreed_rate ? 'font-semibold' : 'text-ink-400'}">${fmtMoney(l.agreed_rate)}</td>
-                <td class="py-2.5 row-cell text-right tabular text-[11.5px] ${m == null ? 'text-ink-400' : m >= 0 ? 'text-ok font-medium' : 'text-bad font-medium'}">${m == null ? '—' : (m >= 0 ? '+' : '') + m.toFixed(1) + '%'}</td>
                 <td class="py-2.5 row-cell">${loadStatusPill(l.status)}</td>
-                <td class="px-5 py-2.5 row-cell text-right tabular text-[12px]">${l.calls}</td>
-              </tr>`;
-          }).join('')}</tbody>
+                <td class="px-5 py-2.5 row-cell text-[10.5px] text-ink-500 max-w-[200px] truncate" title="${(l.notes||'').replace(/"/g,'&quot;')}">${l.notes || '—'}</td>
+              </tr>`).join('')}</tbody>
         </table>
       </div>`;
   }
