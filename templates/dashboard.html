@@ -761,8 +761,8 @@ function applyDensity() {
 // FETCH / REFRESH
 // ──────────────────────────────────────────────────────
 async function fetchMetrics() {
-  state.loads = generateLoads();
   if (state.useMock || !state.apiKey) {
+    state.loads = generateLoads();
     state.rawCalls = generateCalls(state.scenario, state.loads);
     state.metrics = computeMetrics(filterByRange(state.rawCalls, state.range));
     state.carriers = aggregateCarriers(state.rawCalls);
@@ -772,21 +772,47 @@ async function fetchMetrics() {
     return;
   }
   try {
-    const res = await fetch('/metrics', { headers: { 'X-API-Key': state.apiKey } });
-    if (res.status === 401) {
+    const [metricsRes, loadsRes] = await Promise.all([
+      fetch('/metrics', { headers: { 'X-API-Key': state.apiKey } }),
+      fetch('/loads', { headers: { 'X-API-Key': state.apiKey } }),
+    ]);
+    if (metricsRes.status === 401) {
       localStorage.removeItem('api_key'); state.apiKey = null; state.useMock = true;
       showApiModal('Your API key was rejected. Reconnect or continue with demo data.');
       return;
     }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    if (!metricsRes.ok) throw new Error('HTTP ' + metricsRes.status);
+    const data = await metricsRes.json();
+    const loadsData = loadsRes.ok ? await loadsRes.json() : { loads: [] };
     state.metrics = data;
-    state.rawCalls = data.recent_calls || [];
-    state.carriers = aggregateCarriers(state.rawCalls);
+    state.rawCalls = (data.recent_calls || []).map((c, i) => ({
+      ...c,
+      carrier_idx: i,
+      agreed_rate: c.agreed_rate === '' ? null : c.agreed_rate,
+      negotiation_rounds: c.negotiation_rounds === '' ? 0 : (c.negotiation_rounds || 0),
+      sentiment: c.sentiment === '' ? null : c.sentiment,
+    }));
+    state.loads = (loadsData.loads || []).map(l => ({
+      id: l.load_id,
+      lane: l.origin + ' → ' + l.destination,
+      equipment: l.equipment_type,
+      weight: l.weight,
+      listed_rate: l.loadboard_rate,
+      agreed_rate: null,
+      status: 'open',
+      pickup: l.pickup_datetime,
+      delivery: l.delivery_datetime,
+      calls: 0,
+      bookings: 0,
+      miles: l.miles,
+    }));
+    state.carriers = aggregateCarriersLive(state.rawCalls);
     state.lastFetch = new Date();
     document.getElementById('dataSourceBadge').textContent = 'live';
   } catch (err) {
+    console.warn('fetch failed, falling back to demo', err);
     state.useMock = true;
+    state.loads = generateLoads();
     state.rawCalls = generateCalls(state.scenario, state.loads);
     state.metrics = computeMetrics(filterByRange(state.rawCalls, state.range));
     state.carriers = aggregateCarriers(state.rawCalls);
@@ -794,6 +820,32 @@ async function fetchMetrics() {
     document.getElementById('dataSourceBadge').textContent = 'demo · backend offline';
   }
   updateCounters();
+}
+
+function aggregateCarriersLive(calls) {
+  const map = {};
+  for (const c of calls) {
+    const key = c.mc_number || c.call_id;
+    if (!key) continue;
+    if (!map[key]) {
+      map[key] = {
+        idx: Object.keys(map).length, name: c.carrier_name || 'Unknown',
+        mc_number: c.mc_number || '', total: 0, booked: 0, declined: 0,
+        last_contact: c.timestamp, lanes: {},
+        sentiments: { positive:0, neutral:0, negative:0 }, total_revenue: 0,
+        fmcsa_status: 'active', insurance_ok: true, safety_score: 85,
+        fleet_size: 10, preferred_lane: '', booking_rate: 0,
+      };
+    }
+    const r = map[key];
+    r.total++;
+    if (c.outcome === 'booked') { r.booked++; r.total_revenue += (c.agreed_rate || 0); }
+    if (c.outcome === 'declined') r.declined++;
+    if (c.sentiment) r.sentiments[c.sentiment]++;
+    if (new Date(c.timestamp) > new Date(r.last_contact)) r.last_contact = c.timestamp;
+    r.booking_rate = r.total ? +((r.booked / r.total) * 100).toFixed(1) : 0;
+  }
+  return Object.values(map).sort((a,b) => b.total - a.total);
 }
 
 function updateCounters() {
