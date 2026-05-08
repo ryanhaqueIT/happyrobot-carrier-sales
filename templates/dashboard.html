@@ -1,2 +1,1169 @@
-<!DOCTYPE html>
-<html><body><h1>Dashboard placeholder - will be built next</h1></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acme Logistics · Carrier Sales</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+            serif: ['"Instrument Serif"', 'Georgia', 'serif'],
+            mono: ['"Geist Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+          },
+          colors: {
+            cream: '#F6F4EE',
+            paper: '#FFFFFF',
+            ink: {
+              900: '#0F1419',
+              700: '#2A2F36',
+              500: '#5A6068',
+              400: '#7F858D',
+              300: '#A8ADB4',
+            },
+            night: {
+              950: '#0A0A0B',
+              900: '#101012',
+              800: '#17181B',
+              700: '#1F2024',
+              600: '#2A2C32',
+              500: '#3A3D44',
+            },
+            brand: {
+              DEFAULT: '#E8542B', // Acme orange
+              600: '#D9461E',
+              50: '#FBE9E1',
+            },
+            accent: '#3B5BFF',
+            ok: '#10B981',
+            warn: '#F59E0B',
+            bad: '#E11D48',
+          },
+          letterSpacing: {
+            tightish: '-0.012em',
+            'kicker': '0.08em',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html, body { font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .display { font-family: 'Instrument Serif', Georgia, serif; }
+    .tabular { font-variant-numeric: tabular-nums; }
+    .mono { font-family: 'Geist Mono', ui-monospace, monospace; }
+
+    /* Crisp 1-pixel borders that play nice with high-DPI */
+    .hairline { box-shadow: 0 0 0 1px rgba(15,20,25,.07); }
+    .dark .hairline { box-shadow: 0 0 0 1px rgba(255,255,255,.07); }
+
+    /* Live pulse */
+    @keyframes livepulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.6); opacity: 0; }
+    }
+    .live-dot::after {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: 9999px; background: currentColor;
+      animation: livepulse 1.8s ease-out infinite;
+    }
+
+    /* Skeleton shimmer (used briefly while charts mount) */
+    @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+    .skeleton {
+      background: linear-gradient(90deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 100%);
+      background-size: 800px 100%;
+      animation: shimmer 1.6s linear infinite;
+    }
+    .dark .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
+      background-size: 800px 100%;
+    }
+
+    /* Custom scrollbar in main area */
+    main::-webkit-scrollbar { width: 8px; height: 8px; }
+    main::-webkit-scrollbar-thumb { background: rgba(15,20,25,.12); border-radius: 4px; }
+    .dark main::-webkit-scrollbar-thumb { background: rgba(255,255,255,.10); }
+
+    /* Subtle table row hover */
+    .row-hover:hover { background: rgba(15,20,25,.03); }
+    .dark .row-hover:hover { background: rgba(255,255,255,.03); }
+
+    /* Fade-in for refreshes */
+    @keyframes fadein { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+    .fadein > * { animation: fadein .35s ease-out both; }
+
+    /* Density */
+    [data-density="compact"] .row-cell { padding-top: .5rem; padding-bottom: .5rem; }
+    [data-density="compact"] .kpi-card { padding: 1.25rem 1.5rem; }
+    [data-density="compact"] .panel-pad { padding: 1.25rem 1.5rem; }
+
+    /* Tweaks toggle button base */
+    .pill-btn {
+      display: inline-flex; align-items: center; gap: .375rem;
+      padding: .375rem .75rem; border-radius: 9999px; font-size: .8125rem;
+      font-weight: 500; transition: all .15s ease;
+    }
+  </style>
+</head>
+
+<body class="bg-cream dark:bg-night-950 text-ink-900 dark:text-zinc-100 antialiased min-h-screen">
+  <!-- ═══════════════════════════════════════════ APP SHELL ═══════════════════════════════════════════ -->
+  <div class="flex min-h-screen">
+    <!-- ───────────── SIDEBAR ───────────── -->
+    <aside class="w-[244px] shrink-0 border-r border-black/[.06] dark:border-white/[.06] flex flex-col bg-cream dark:bg-night-950">
+      <!-- Brand -->
+      <div class="px-5 pt-6 pb-5">
+        <div class="flex items-center gap-2.5">
+          <!-- Acme monogram -->
+          <div class="w-8 h-8 rounded-[10px] bg-ink-900 dark:bg-white flex items-center justify-center relative overflow-hidden">
+            <svg viewBox="0 0 24 24" class="w-4.5 h-4.5 text-brand" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 17l4-9 5 9 4-12 5 12" />
+            </svg>
+          </div>
+          <div class="leading-tight">
+            <div class="font-semibold text-[15px] tracking-tightish">Acme Logistics</div>
+            <div class="text-[11px] text-ink-400 dark:text-zinc-500">Carrier Sales</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="px-3 mt-2 flex-1 flex flex-col gap-0.5 text-[13.5px]">
+        <a href="#" data-active class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg bg-ink-900 text-white dark:bg-white dark:text-ink-900 font-medium">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+          Overview
+          <span class="ml-auto text-[10.5px] tracking-kicker uppercase opacity-60">●</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-ink-700 dark:text-zinc-300 hover:bg-black/[.04] dark:hover:bg-white/[.04]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92V20a2 2 0 01-2.18 2 19.72 19.72 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.72 19.72 0 012.12 4.18 2 2 0 014.11 2h3.09a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>
+          Calls
+          <span class="ml-auto text-[11px] mono text-ink-400 dark:text-zinc-500">312</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-ink-700 dark:text-zinc-300 hover:bg-black/[.04] dark:hover:bg-white/[.04]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+          Loads
+          <span class="ml-auto text-[11px] mono text-ink-400 dark:text-zinc-500">48</span>
+        </a>
+        <a href="#" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-ink-700 dark:text-zinc-300 hover:bg-black/[.04] dark:hover:bg-white/[.04]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          Carriers
+        </a>
+        <a href="#" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-ink-700 dark:text-zinc-300 hover:bg-black/[.04] dark:hover:bg-white/[.04]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </a>
+
+        <div class="mt-6 mb-2 px-3 text-[10px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500">Workspace</div>
+        <a href="#" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-ink-700 dark:text-zinc-300 hover:bg-black/[.04] dark:hover:bg-white/[.04]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+          Reports
+        </a>
+        <a href="#" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-ink-700 dark:text-zinc-300 hover:bg-black/[.04] dark:hover:bg-white/[.04]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Activity
+        </a>
+      </nav>
+
+      <!-- Bottom: user + powered by -->
+      <div class="px-3 pb-3 pt-3 space-y-2">
+        <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-black/[.04] dark:hover:bg-white/[.04] cursor-pointer">
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-brand to-brand-600 flex items-center justify-center text-white text-[11px] font-semibold">SC</div>
+          <div class="leading-tight min-w-0 flex-1">
+            <div class="text-[12.5px] font-medium truncate">Sam Chen</div>
+            <div class="text-[10.5px] text-ink-400 dark:text-zinc-500 truncate">Carrier Sales Lead</div>
+          </div>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink-400 dark:text-zinc-500"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <a href="#" class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[10.5px] text-ink-400 dark:text-zinc-500 hover:text-ink-700 dark:hover:text-zinc-300 transition">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand"></span>
+          <span>Powered by <span class="font-semibold text-ink-700 dark:text-zinc-200">HappyRobot</span></span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ───────────── MAIN ───────────── -->
+    <main class="flex-1 min-w-0 overflow-x-hidden">
+      <!-- Top bar -->
+      <header class="sticky top-0 z-20 backdrop-blur-md bg-cream/80 dark:bg-night-950/80 border-b border-black/[.05] dark:border-white/[.05]">
+        <div class="flex items-center gap-3 px-8 h-[60px]">
+          <!-- Breadcrumb -->
+          <div class="flex items-center gap-2 text-[12.5px] text-ink-400 dark:text-zinc-500">
+            <span>Carrier Sales</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <span class="text-ink-900 dark:text-zinc-100 font-medium">Overview</span>
+          </div>
+
+          <div class="flex-1"></div>
+
+          <!-- Search -->
+          <div class="hidden md:flex items-center gap-2 px-3 h-9 w-[260px] rounded-lg bg-black/[.04] dark:bg-white/[.05] hover:bg-black/[.06] dark:hover:bg-white/[.07] transition">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-ink-400 dark:text-zinc-500"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="bg-transparent border-0 outline-none text-[13px] flex-1 placeholder:text-ink-400 dark:placeholder:text-zinc-500" placeholder="Search calls, carriers, MC#…" />
+            <kbd class="text-[10px] mono px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 text-ink-400 dark:text-zinc-500">⌘K</kbd>
+          </div>
+
+          <!-- Theme toggle -->
+          <button id="themeToggle" aria-label="Toggle theme" class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-black/[.05] dark:hover:bg-white/[.05] transition">
+            <svg id="themeIconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            <svg id="themeIconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          </button>
+
+          <!-- Bell -->
+          <button class="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-black/[.05] dark:hover:bg-white/[.05] transition relative">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            <span class="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-brand"></span>
+          </button>
+
+          <div class="w-px h-6 bg-black/10 dark:bg-white/10 mx-1"></div>
+
+          <button class="flex items-center gap-2 h-9 pl-1 pr-2 rounded-lg hover:bg-black/[.04] dark:hover:bg-white/[.05] transition">
+            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-brand to-brand-600 flex items-center justify-center text-white text-[11px] font-semibold">SC</div>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page content -->
+      <div class="px-8 py-8 max-w-[1440px] mx-auto fadein" id="pageContent">
+        <!-- Heading row -->
+        <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5 mb-7">
+          <div>
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold">Carrier Sales · Inbound</div>
+              <div id="liveBadge" class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-ok/10 text-ok text-[10.5px] font-medium">
+                <span class="relative w-1.5 h-1.5 rounded-full bg-ok live-dot"></span>
+                Live
+              </div>
+            </div>
+            <h1 class="display text-[44px] leading-[1.05] tracking-tightish text-ink-900 dark:text-zinc-50">
+              Overview <span class="italic text-ink-400 dark:text-zinc-500">— how the agent is doing.</span>
+            </h1>
+            <p class="text-[13.5px] text-ink-500 dark:text-zinc-400 mt-1.5">
+              AI-powered inbound carrier sales analytics · <span id="lastUpdated" class="mono">updated just now</span>
+            </p>
+          </div>
+
+          <!-- Time range pills + actions -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="inline-flex items-center bg-paper dark:bg-night-800 rounded-lg p-0.5 hairline" id="rangePicker">
+              <button data-range="today" class="range-btn px-3 h-8 text-[12.5px] rounded-md font-medium transition">Today</button>
+              <button data-range="7d" class="range-btn px-3 h-8 text-[12.5px] rounded-md font-medium transition">7d</button>
+              <button data-range="30d" class="range-btn px-3 h-8 text-[12.5px] rounded-md font-medium transition">30d</button>
+              <button data-range="all" class="range-btn px-3 h-8 text-[12.5px] rounded-md font-medium transition">All</button>
+            </div>
+            <button class="pill-btn bg-paper dark:bg-night-800 hairline hover:bg-black/[.02] dark:hover:bg-white/[.04]">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- ───────── KPI ROW ───────── -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 mb-5" id="kpiRow"></div>
+
+        <!-- ───────── CHARTS ROW ───────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-3.5 mb-5">
+          <!-- Outcomes -->
+          <div class="lg:col-span-3 bg-paper dark:bg-night-800 rounded-2xl hairline panel-pad p-6">
+            <div class="flex items-start justify-between mb-1">
+              <div>
+                <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold mb-1">Call outcomes</div>
+                <div class="display text-[24px] leading-tight tracking-tightish">Where calls land</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold">Booked</div>
+                <div class="display text-[24px] leading-tight tracking-tightish text-ok"><span id="bookedCount">—</span> <span class="text-ink-400 dark:text-zinc-500 italic text-[16px]" id="bookedPct">—</span></div>
+              </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row items-center gap-6 mt-4">
+              <div class="relative w-[220px] h-[220px] shrink-0">
+                <canvas id="outcomesChart" width="220" height="220"></canvas>
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold">Total</div>
+                  <div class="display text-[44px] leading-none tracking-tightish tabular" id="outcomesTotal">—</div>
+                  <div class="text-[11px] text-ink-400 dark:text-zinc-500 mt-1">calls</div>
+                </div>
+              </div>
+
+              <div class="flex-1 w-full grid grid-cols-1 gap-2" id="outcomesLegend"></div>
+            </div>
+          </div>
+
+          <!-- Sentiment -->
+          <div class="lg:col-span-2 bg-paper dark:bg-night-800 rounded-2xl hairline panel-pad p-6 flex flex-col">
+            <div class="flex items-start justify-between mb-1">
+              <div>
+                <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold mb-1">Carrier sentiment</div>
+                <div class="display text-[24px] leading-tight tracking-tightish">How carriers <em class="italic text-ink-500 dark:text-zinc-400">felt</em></div>
+              </div>
+            </div>
+
+            <!-- Stacked horizontal bar -->
+            <div class="mt-5">
+              <div class="flex h-3 rounded-full overflow-hidden hairline" id="sentimentBar"></div>
+            </div>
+
+            <div class="mt-5 space-y-3.5 flex-1" id="sentimentLegend"></div>
+
+            <!-- Net sentiment -->
+            <div class="mt-5 pt-4 border-t border-black/[.06] dark:border-white/[.06] flex items-baseline gap-2">
+              <span class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold">Net</span>
+              <span class="display text-[24px] leading-none tabular" id="netSentiment">—</span>
+              <span class="text-[11.5px] text-ink-400 dark:text-zinc-500 italic">positive minus negative</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───────── TABLE ───────── -->
+        <div class="bg-paper dark:bg-night-800 rounded-2xl hairline overflow-hidden">
+          <div class="flex items-center gap-3 px-6 pt-5 pb-4">
+            <div>
+              <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold mb-1">Recent calls</div>
+              <div class="display text-[24px] leading-tight tracking-tightish">Last <span id="recentCount" class="tabular">20</span> calls</div>
+            </div>
+            <div class="flex-1"></div>
+            <div class="hidden sm:flex items-center gap-2">
+              <div class="inline-flex items-center bg-black/[.04] dark:bg-white/[.04] rounded-lg p-0.5" id="outcomeFilter">
+                <button data-of="all" class="of-btn px-2.5 h-7 text-[11.5px] rounded-md font-medium transition">All</button>
+                <button data-of="booked" class="of-btn px-2.5 h-7 text-[11.5px] rounded-md font-medium transition">Booked</button>
+                <button data-of="declined" class="of-btn px-2.5 h-7 text-[11.5px] rounded-md font-medium transition">Declined</button>
+                <button data-of="not_qualified" class="of-btn px-2.5 h-7 text-[11.5px] rounded-md font-medium transition">Not qualified</button>
+                <button data-of="no_match" class="of-btn px-2.5 h-7 text-[11.5px] rounded-md font-medium transition">No match</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-[13px]">
+              <thead>
+                <tr class="text-left text-ink-400 dark:text-zinc-500 text-[11px] tracking-kicker uppercase font-semibold border-y border-black/[.06] dark:border-white/[.06] bg-black/[.015] dark:bg-white/[.015]">
+                  <th class="px-6 py-2.5 font-semibold">Time</th>
+                  <th class="py-2.5 font-semibold">Carrier</th>
+                  <th class="py-2.5 font-semibold">MC #</th>
+                  <th class="py-2.5 font-semibold">Outcome</th>
+                  <th class="py-2.5 font-semibold">Sentiment</th>
+                  <th class="py-2.5 font-semibold text-right">Agreed rate</th>
+                  <th class="px-6 py-2.5 font-semibold text-right">Rounds</th>
+                </tr>
+              </thead>
+              <tbody id="callsBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Empty state (toggled in JS) -->
+          <div id="emptyState" class="hidden flex flex-col items-center justify-center text-center px-6 py-16">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" class="mb-4 opacity-60">
+              <rect x="14" y="20" width="52" height="40" rx="6" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/>
+              <circle cx="26" cy="36" r="3" fill="currentColor" opacity=".4"/>
+              <rect x="34" y="33" width="22" height="2" rx="1" fill="currentColor" opacity=".3"/>
+              <rect x="34" y="40" width="14" height="2" rx="1" fill="currentColor" opacity=".25"/>
+              <rect x="22" y="50" width="36" height="2" rx="1" fill="currentColor" opacity=".2"/>
+            </svg>
+            <div class="display text-[22px] mb-1">No calls in this range yet.</div>
+            <div class="text-[13px] text-ink-500 dark:text-zinc-400 max-w-sm">Make a test call through the HappyRobot platform — once it completes, it'll show up here within a few seconds.</div>
+          </div>
+        </div>
+
+        <!-- Footer note -->
+        <div class="mt-6 flex items-center justify-between text-[11.5px] text-ink-400 dark:text-zinc-500">
+          <div>Auto-refreshes every 30s · <span id="dataSourceBadge" class="mono">demo data</span></div>
+          <div class="flex items-center gap-2">
+            <span>Acme Logistics · Carrier Sales</span>
+            <span class="opacity-50">·</span>
+            <span>v0.4.2</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ API KEY MODAL ═══════════════════════════════════════════ -->
+  <div id="apiModal" class="hidden fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-paper dark:bg-night-800 rounded-2xl p-7 shadow-2xl">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-9 h-9 rounded-xl bg-ink-900 dark:bg-white flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-brand"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <div>
+          <div class="display text-[22px] leading-none tracking-tightish">Connect your workspace</div>
+          <div class="text-[12px] text-ink-500 dark:text-zinc-400 mt-0.5">Enter your API key to load live metrics.</div>
+        </div>
+      </div>
+
+      <label class="block text-[11px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold mb-1.5">API key</label>
+      <input id="apiKeyInput" type="password" autocomplete="off" placeholder="hr_••••••••••••" class="mono w-full bg-black/[.04] dark:bg-white/[.05] border-0 outline-none px-3.5 h-10 rounded-lg text-[13.5px] focus:ring-2 focus:ring-brand/50" />
+      <div id="apiKeyError" class="hidden text-[12px] text-bad mt-2"></div>
+
+      <div class="flex items-center justify-between gap-3 mt-5">
+        <button id="useDemoBtn" class="text-[12.5px] text-ink-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white">Use demo data instead →</button>
+        <button id="apiKeySubmit" class="bg-ink-900 dark:bg-white text-white dark:text-ink-900 px-4 h-10 rounded-lg text-[13px] font-medium hover:opacity-90 transition">Connect</button>
+      </div>
+
+      <div class="mt-5 pt-4 border-t border-black/[.06] dark:border-white/[.06] text-[11px] text-ink-400 dark:text-zinc-500 leading-relaxed">
+        Your key is stored in this browser's localStorage and sent only to your own backend at <span class="mono">/metrics</span>.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ TWEAKS PANEL ═══════════════════════════════════════════ -->
+  <div id="tweaksPanel" class="hidden fixed bottom-6 right-6 z-40 w-[280px] bg-paper dark:bg-night-800 rounded-2xl shadow-2xl hairline overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-black/[.06] dark:border-white/[.06]">
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand"></span>
+        <span class="font-semibold text-[13px]">Tweaks</span>
+      </div>
+      <button id="tweaksClose" class="w-6 h-6 rounded-md hover:bg-black/[.06] dark:hover:bg-white/[.06] flex items-center justify-center">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="p-4 space-y-4">
+      <div>
+        <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold mb-1.5">Theme</div>
+        <div class="inline-flex bg-black/[.04] dark:bg-white/[.05] p-0.5 rounded-lg w-full" data-tweak="theme">
+          <button data-val="light" class="tweak-opt flex-1 h-8 text-[12px] rounded-md font-medium">Light</button>
+          <button data-val="dark" class="tweak-opt flex-1 h-8 text-[12px] rounded-md font-medium">Dark</button>
+        </div>
+      </div>
+      <div>
+        <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold mb-1.5">Density</div>
+        <div class="inline-flex bg-black/[.04] dark:bg-white/[.05] p-0.5 rounded-lg w-full" data-tweak="density">
+          <button data-val="comfortable" class="tweak-opt flex-1 h-8 text-[12px] rounded-md font-medium">Comfortable</button>
+          <button data-val="compact" class="tweak-opt flex-1 h-8 text-[12px] rounded-md font-medium">Compact</button>
+        </div>
+      </div>
+      <div>
+        <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold mb-1.5">Demo scenario</div>
+        <div class="grid grid-cols-2 gap-1.5" data-tweak="scenario">
+          <button data-val="busy" class="tweak-opt h-8 text-[12px] rounded-md font-medium bg-black/[.04] dark:bg-white/[.05]">Busy</button>
+          <button data-val="slow" class="tweak-opt h-8 text-[12px] rounded-md font-medium bg-black/[.04] dark:bg-white/[.05]">Slow day</button>
+          <button data-val="problem" class="tweak-opt h-8 text-[12px] rounded-md font-medium bg-black/[.04] dark:bg-white/[.05]">Low booking</button>
+          <button data-val="empty" class="tweak-opt h-8 text-[12px] rounded-md font-medium bg-black/[.04] dark:bg-white/[.05]">Empty</button>
+        </div>
+      </div>
+      <div class="pt-2 border-t border-black/[.06] dark:border-white/[.06]">
+        <button id="resetKeyBtn" class="text-[11.5px] text-ink-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white">Reset API key…</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ SCRIPTS ═══════════════════════════════════════════ -->
+  <script>
+  // ╔══════════════════════════════════════════╗
+  // ║  DEFAULTS (tweakable + persisted)         ║
+  // ╚══════════════════════════════════════════╝
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "theme": "light",
+    "density": "comfortable",
+    "scenario": "busy",
+    "useMockData": true
+  }/*EDITMODE-END*/;
+
+  // ╔══════════════════════════════════════════╗
+  // ║  COLOR TOKENS (kept in sync with Tailwind)║
+  // ╚══════════════════════════════════════════╝
+  const OUTCOME_META = {
+    booked:        { label: 'Booked',        color: '#10B981', tint: 'rgba(16,185,129,.12)',  ring: 'ring-ok/30',     emoji: '✓' },
+    declined:      { label: 'Declined',      color: '#E11D48', tint: 'rgba(225,29,72,.12)',   ring: 'ring-bad/30',    emoji: '✕' },
+    not_qualified: { label: 'Not qualified', color: '#F59E0B', tint: 'rgba(245,158,11,.14)',  ring: 'ring-warn/30',   emoji: '!' },
+    no_match:      { label: 'No match',      color: '#94A3B8', tint: 'rgba(148,163,184,.14)', ring: 'ring-zinc-300',  emoji: '·' },
+    transferred:   { label: 'Transferred',   color: '#3B5BFF', tint: 'rgba(59,91,255,.12)',   ring: 'ring-accent/30', emoji: '↗' },
+    dropped:       { label: 'Dropped',       color: '#9F1239', tint: 'rgba(159,18,57,.14)',   ring: 'ring-bad/30',    emoji: '⌀' },
+  };
+  const OUTCOME_ORDER = ['booked','declined','not_qualified','no_match','transferred','dropped'];
+
+  const SENT_META = {
+    positive: { label: 'Positive', color: '#10B981', tint: 'rgba(16,185,129,.12)' },
+    neutral:  { label: 'Neutral',  color: '#94A3B8', tint: 'rgba(148,163,184,.14)' },
+    negative: { label: 'Negative', color: '#E11D48', tint: 'rgba(225,29,72,.12)' },
+  };
+
+  // ╔══════════════════════════════════════════╗
+  // ║  MOCK DATA GENERATOR                      ║
+  // ╚══════════════════════════════════════════╝
+  const CARRIERS = [
+    ['ABC Trucking LLC', '728261'],
+    ['FastHaul Inc', '551234'],
+    ['Midwest Freight Co', '903112'],
+    ['Apex Carriers', '614820'],
+    ['Lone Star Logistics', '882104'],
+    ['BlueLine Transport', '402199'],
+    ['Pacific Cargo Solutions', '775081'],
+    ['Heartland Hauling', '519274'],
+    ['Summit Transit', '630415'],
+    ['Nightowl Express', '244903'],
+    ['RoadRunner Freight', '371882'],
+    ['GreatPlains Carriers', '688204'],
+    ['Coastal Freight Group', '912045'],
+    ['Mountain Pass Trucking', '155720'],
+    ['Velocity Transport LLC', '829113'],
+    ['Anchor Carriers', '447022'],
+    ['Reliable Freight Systems', '503284'],
+    ['Steel City Hauling', '768941'],
+    ['Sunbelt Logistics Co', '215603'],
+    ['Crossroads Trucking', '634509'],
+    ['IronHorse Transport', '480711'],
+    ['StarFleet Carriers', '593728'],
+    ['Northbound Freight', '101284'],
+    ['Stellar Cargo Co', '866214'],
+    ['BigSky Logistics', '227104'],
+    ['Cardinal Carriers', '389502'],
+    ['Highway 9 Trucking', '740199'],
+    ['Liberty Freight Lines', '562803'],
+  ];
+
+  function seedRand(seed) {
+    let s = seed | 0;
+    return () => {
+      s = (s * 9301 + 49297) % 233280;
+      return s / 233280;
+    };
+  }
+
+  function pick(rand, items, weights) {
+    const total = weights.reduce((a,b)=>a+b,0);
+    let r = rand() * total;
+    for (let i = 0; i < items.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return items[i];
+    }
+    return items[items.length-1];
+  }
+
+  // Build a fixed timeline of ~70 calls over 30 days, deterministic.
+  function generateCalls(scenario) {
+    if (scenario === 'empty') return [];
+    let seed, count, outcomeWeights, sentWeights;
+    if (scenario === 'busy') {
+      seed = 42; count = 84;
+      outcomeWeights = [0.42, 0.18, 0.13, 0.10, 0.10, 0.07];
+      sentWeights = [0.55, 0.30, 0.15];
+    } else if (scenario === 'slow') {
+      seed = 17; count = 18;
+      outcomeWeights = [0.38, 0.22, 0.12, 0.12, 0.10, 0.06];
+      sentWeights = [0.50, 0.32, 0.18];
+    } else { // problem
+      seed = 91; count = 56;
+      outcomeWeights = [0.16, 0.30, 0.20, 0.18, 0.06, 0.10];
+      sentWeights = [0.30, 0.32, 0.38];
+    }
+
+    const rand = seedRand(seed);
+    const now = new Date('2026-05-08T15:30:00');
+    const calls = [];
+    for (let i = 0; i < count; i++) {
+      // distribute timestamps with slight clustering toward recent
+      const daysBack = Math.floor(Math.pow(rand(), 1.6) * 30);
+      const hoursOff = Math.floor(rand() * 24);
+      const minsOff = Math.floor(rand() * 60);
+      const ts = new Date(now);
+      ts.setDate(ts.getDate() - daysBack);
+      ts.setHours(8 + Math.floor(hoursOff * 0.5), minsOff, 0, 0);
+
+      const outcome = pick(rand, OUTCOME_ORDER, outcomeWeights);
+      let sentiment = null;
+      if (outcome !== 'dropped') {
+        sentiment = pick(rand, ['positive','neutral','negative'], sentWeights);
+        // bias sentiment by outcome
+        if (outcome === 'booked' && rand() < 0.35) sentiment = 'positive';
+        if (outcome === 'declined' && rand() < 0.45) sentiment = 'negative';
+      }
+
+      const carrierIdx = Math.floor(rand() * CARRIERS.length);
+      const carrierMissing = rand() < 0.04;
+      const [name, mc] = CARRIERS[carrierIdx];
+
+      let agreedRate = null;
+      let rounds = 0;
+      if (outcome === 'booked') {
+        agreedRate = Math.round((2400 + rand() * 1900) / 25) * 25;
+        rounds = 1 + Math.floor(rand() * 4);
+      } else if (outcome === 'declined') {
+        rounds = 1 + Math.floor(rand() * 4);
+      } else if (outcome === 'no_match') {
+        rounds = Math.floor(rand() * 2);
+      } else if (outcome === 'transferred') {
+        rounds = Math.floor(rand() * 3);
+      } else if (outcome === 'not_qualified') {
+        rounds = 0;
+      }
+
+      calls.push({
+        call_id: 'run-' + Math.random().toString(36).slice(2, 10),
+        carrier_name: carrierMissing ? null : name,
+        mc_number: carrierMissing ? null : mc,
+        outcome,
+        sentiment,
+        agreed_rate: agreedRate,
+        negotiation_rounds: rounds,
+        timestamp: ts.toISOString(),
+      });
+    }
+
+    calls.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return calls;
+  }
+
+  function computeMetrics(calls) {
+    const m = {
+      total_calls: calls.length,
+      booked: 0, declined: 0, not_qualified: 0, no_match: 0, transferred: 0, dropped: 0,
+      booking_rate: 0,
+      avg_agreed_rate: null,
+      avg_negotiation_rounds: 0,
+      sentiment_positive: 0, sentiment_neutral: 0, sentiment_negative: 0,
+      recent_calls: calls.slice(0, 20),
+    };
+    if (calls.length === 0) return m;
+    let rateSum = 0, rateN = 0, roundSum = 0;
+    for (const c of calls) {
+      m[c.outcome] = (m[c.outcome] || 0) + 1;
+      if (c.sentiment) m['sentiment_' + c.sentiment]++;
+      if (c.agreed_rate != null) { rateSum += c.agreed_rate; rateN++; }
+      roundSum += c.negotiation_rounds || 0;
+    }
+    m.booking_rate = +((m.booked / m.total_calls) * 100).toFixed(1);
+    m.avg_agreed_rate = rateN ? +(rateSum / rateN).toFixed(2) : null;
+    m.avg_negotiation_rounds = +(roundSum / m.total_calls).toFixed(1);
+    return m;
+  }
+
+  function filterByRange(calls, range) {
+    if (range === 'all') return calls;
+    const now = new Date('2026-05-08T15:30:00');
+    let cutoff;
+    if (range === 'today') {
+      cutoff = new Date(now); cutoff.setHours(0,0,0,0);
+    } else if (range === '7d') {
+      cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7);
+    } else if (range === '30d') {
+      cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30);
+    } else cutoff = new Date(0);
+    return calls.filter(c => new Date(c.timestamp) >= cutoff);
+  }
+
+  // ╔══════════════════════════════════════════╗
+  // ║  STATE                                    ║
+  // ╚══════════════════════════════════════════╝
+  const state = {
+    theme: localStorage.getItem('theme') || TWEAK_DEFAULTS.theme,
+    density: localStorage.getItem('density') || TWEAK_DEFAULTS.density,
+    scenario: localStorage.getItem('scenario') || TWEAK_DEFAULTS.scenario,
+    range: localStorage.getItem('range') || '30d',
+    outcomeFilter: 'all',
+    apiKey: localStorage.getItem('api_key') || null,
+    useMock: !localStorage.getItem('api_key'),  // demo by default until user provides a key
+    metrics: null,
+    rawCalls: [],
+    lastFetch: null,
+  };
+
+  // ╔══════════════════════════════════════════╗
+  // ║  THEME / DENSITY                          ║
+  // ╚══════════════════════════════════════════╝
+  function applyTheme() {
+    document.documentElement.classList.toggle('dark', state.theme === 'dark');
+    document.getElementById('themeIconSun').classList.toggle('hidden', state.theme === 'dark');
+    document.getElementById('themeIconMoon').classList.toggle('hidden', state.theme !== 'dark');
+    localStorage.setItem('theme', state.theme);
+    if (window.__charts) renderCharts(); // re-render for new colors
+  }
+  function applyDensity() {
+    document.documentElement.setAttribute('data-density', state.density);
+    localStorage.setItem('density', state.density);
+  }
+
+  // ╔══════════════════════════════════════════╗
+  // ║  FETCH / REFRESH                          ║
+  // ╚══════════════════════════════════════════╝
+  async function fetchMetrics() {
+    if (state.useMock || !state.apiKey) {
+      // mock mode: generate calls for scenario, filter by range
+      state.rawCalls = generateCalls(state.scenario);
+      state.metrics = computeMetrics(filterByRange(state.rawCalls, state.range));
+      state.lastFetch = new Date();
+      document.getElementById('dataSourceBadge').textContent = 'demo data · ' + state.scenario;
+      return;
+    }
+    try {
+      const res = await fetch('/metrics', { headers: { 'X-API-Key': state.apiKey } });
+      if (res.status === 401) {
+        localStorage.removeItem('api_key');
+        state.apiKey = null;
+        state.useMock = true;
+        showApiModal('Your API key was rejected. Reconnect or continue with demo data.');
+        return;
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      // Backend sends pre-aggregated metrics. We use them directly + still allow time filter on recent_calls.
+      state.metrics = data;
+      state.rawCalls = data.recent_calls || [];
+      state.lastFetch = new Date();
+      document.getElementById('dataSourceBadge').textContent = 'live · /metrics';
+    } catch (err) {
+      console.warn('fetch failed, falling back to demo', err);
+      state.useMock = true;
+      state.rawCalls = generateCalls(state.scenario);
+      state.metrics = computeMetrics(filterByRange(state.rawCalls, state.range));
+      state.lastFetch = new Date();
+      document.getElementById('dataSourceBadge').textContent = 'demo data · backend unreachable';
+    }
+  }
+
+  // ╔══════════════════════════════════════════╗
+  // ║  RENDER                                   ║
+  // ╚══════════════════════════════════════════╝
+  function fmtMoney(n) {
+    if (n == null) return '—';
+    return '$' + Math.round(n).toLocaleString('en-US');
+  }
+  function fmtTime(iso) {
+    const d = new Date(iso);
+    const now = new Date('2026-05-08T15:30:00');
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'just now';
+    if (diffMin < 60) return diffMin + 'm ago';
+    if (diffMin < 60 * 24) {
+      const h = Math.floor(diffMin / 60);
+      return h + 'h ago';
+    }
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+  function fmtUpdated(d) {
+    if (!d) return 'updating…';
+    const now = new Date();
+    const s = Math.floor((now - d) / 1000);
+    if (s < 5) return 'updated just now';
+    if (s < 60) return 'updated ' + s + 's ago';
+    return 'updated ' + Math.floor(s/60) + 'm ago';
+  }
+
+  function colorForBookingRate(r) {
+    if (r >= 30) return 'ok';
+    if (r >= 15) return 'warn';
+    return 'bad';
+  }
+
+  function renderKPIs() {
+    const m = state.metrics;
+    const row = document.getElementById('kpiRow');
+    const brColor = colorForBookingRate(m.booking_rate || 0);
+    const brColorHex = { ok: '#10B981', warn: '#F59E0B', bad: '#E11D48' }[brColor];
+
+    const cards = [
+      {
+        label: 'Total calls',
+        value: m.total_calls.toLocaleString(),
+        sub: m.total_calls === 0 ? '—' : 'in ' + rangeLabel(state.range),
+        icon: `<path d="M22 16.92V20a2 2 0 01-2.18 2 19.72 19.72 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.72 19.72 0 012.12 4.18 2 2 0 014.11 2h3.09a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/>`,
+        accent: '#0F1419',
+      },
+      {
+        label: 'Booking rate',
+        value: m.total_calls === 0 ? '—' : m.booking_rate.toFixed(1) + '%',
+        sub: m.total_calls === 0 ? 'awaiting data' : `${m.booked} of ${m.total_calls} booked`,
+        icon: `<polyline points="20 6 9 17 4 12"/>`,
+        accent: brColorHex,
+        ring: m.total_calls === 0 ? null : m.booking_rate / 100,
+      },
+      {
+        label: 'Avg agreed rate',
+        value: m.avg_agreed_rate == null ? '—' : fmtMoney(m.avg_agreed_rate),
+        sub: m.avg_agreed_rate == null ? 'no bookings yet' : 'across ' + (m.booked || 0) + ' bookings',
+        icon: `<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>`,
+        accent: '#10B981',
+      },
+      {
+        label: 'Avg negotiation rounds',
+        value: m.total_calls === 0 ? '—' : m.avg_negotiation_rounds.toFixed(1),
+        sub: m.total_calls === 0 ? '—' : 'per call',
+        icon: `<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/>`,
+        accent: '#3B5BFF',
+      },
+    ];
+
+    row.innerHTML = cards.map((c, i) => {
+      const ringSvg = c.ring != null ? `
+        <svg class="absolute -top-1 -right-1" width="64" height="64" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="4" class="text-black/[.05] dark:text-white/[.06]"/>
+          <circle cx="32" cy="32" r="26" fill="none" stroke="${c.accent}" stroke-width="4"
+                  stroke-dasharray="${(2*Math.PI*26).toFixed(2)}" stroke-dashoffset="${((2*Math.PI*26) * (1 - c.ring)).toFixed(2)}"
+                  stroke-linecap="round" transform="rotate(-90 32 32)"/>
+        </svg>` : '';
+      return `
+      <div class="kpi-card relative bg-paper dark:bg-night-800 rounded-2xl hairline p-6 overflow-hidden">
+        ${ringSvg}
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-7 h-7 rounded-lg bg-black/[.04] dark:bg-white/[.05] flex items-center justify-center" style="color:${c.accent}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${c.icon}</svg>
+          </div>
+          <div class="text-[10.5px] tracking-kicker uppercase text-ink-400 dark:text-zinc-500 font-semibold">${c.label}</div>
+        </div>
+        <div class="display text-[40px] leading-[1] tracking-tightish tabular" style="${c.label==='Booking rate'?`color:${c.accent}`:''}">${c.value}</div>
+        <div class="text-[11.5px] text-ink-500 dark:text-zinc-400 mt-1">${c.sub}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function rangeLabel(r) {
+    return { today: 'today', '7d': 'the last 7 days', '30d': 'the last 30 days', all: 'all time' }[r] || r;
+  }
+
+  // ── Charts ──
+  function renderCharts() {
+    const m = state.metrics;
+    const isDark = state.theme === 'dark';
+    const total = m.total_calls;
+
+    // ─ Outcomes donut ─
+    const ctx = document.getElementById('outcomesChart').getContext('2d');
+    const data = OUTCOME_ORDER.map(k => m[k] || 0);
+    const labels = OUTCOME_ORDER.map(k => OUTCOME_META[k].label);
+    const colors = OUTCOME_ORDER.map(k => OUTCOME_META[k].color);
+
+    if (window.__charts && window.__charts.outcomes) window.__charts.outcomes.destroy();
+    window.__charts = window.__charts || {};
+    window.__charts.outcomes = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors,
+          borderColor: isDark ? '#17181B' : '#FFFFFF',
+          borderWidth: 3,
+          hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: { legend: { display: false }, tooltip: {
+          backgroundColor: isDark ? '#0A0A0B' : '#0F1419',
+          padding: 10, cornerRadius: 8, titleFont: { family: 'Geist', size: 12 }, bodyFont: { family: 'Geist', size: 12 },
+          callbacks: { label: (c) => ` ${c.label}: ${c.parsed} (${total ? ((c.parsed/total)*100).toFixed(0) : 0}%)` }
+        }},
+        animation: { duration: 600 },
+      },
+    });
+
+    // Center stats
+    document.getElementById('outcomesTotal').textContent = total.toLocaleString();
+    document.getElementById('bookedCount').textContent = (m.booked || 0).toLocaleString();
+    document.getElementById('bookedPct').textContent = total ? `(${((m.booked/total)*100).toFixed(0)}%)` : '';
+
+    // Outcomes legend (custom rendered)
+    const maxOutcome = Math.max(1, ...data);
+    document.getElementById('outcomesLegend').innerHTML = OUTCOME_ORDER.map((k, i) => {
+      const meta = OUTCOME_META[k];
+      const v = m[k] || 0;
+      const pct = total ? Math.round((v/total)*100) : 0;
+      const barW = total ? (v / maxOutcome) * 100 : 0;
+      return `
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 w-[120px] shrink-0">
+            <span class="w-2 h-2 rounded-full" style="background:${meta.color}"></span>
+            <span class="text-[12.5px] font-medium">${meta.label}</span>
+          </div>
+          <div class="flex-1 h-1.5 rounded-full bg-black/[.05] dark:bg-white/[.06] overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500" style="width:${barW}%; background:${meta.color}"></div>
+          </div>
+          <div class="w-20 text-right tabular text-[12.5px]">
+            <span class="font-semibold">${v}</span>
+            <span class="text-ink-400 dark:text-zinc-500 ml-1">${pct}%</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    // ─ Sentiment stacked bar ─
+    const sTotal = (m.sentiment_positive||0) + (m.sentiment_neutral||0) + (m.sentiment_negative||0);
+    const sBar = document.getElementById('sentimentBar');
+    if (sTotal === 0) {
+      sBar.innerHTML = `<div class="w-full bg-black/[.05] dark:bg-white/[.06]"></div>`;
+    } else {
+      sBar.innerHTML = ['positive','neutral','negative'].map(k => {
+        const v = m['sentiment_' + k] || 0;
+        const w = sTotal ? (v/sTotal)*100 : 0;
+        return `<div style="width:${w}%; background:${SENT_META[k].color}" title="${SENT_META[k].label}: ${v}"></div>`;
+      }).join('');
+    }
+
+    // Sentiment legend
+    document.getElementById('sentimentLegend').innerHTML = ['positive','neutral','negative'].map(k => {
+      const v = m['sentiment_' + k] || 0;
+      const pct = sTotal ? Math.round((v/sTotal)*100) : 0;
+      return `
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full" style="background:${SENT_META[k].color}"></span>
+          <span class="text-[13px] font-medium flex-1">${SENT_META[k].label}</span>
+          <span class="tabular text-[13px] font-semibold">${v}</span>
+          <span class="tabular text-[12px] text-ink-400 dark:text-zinc-500 w-10 text-right">${pct}%</span>
+        </div>`;
+    }).join('');
+
+    const net = (m.sentiment_positive || 0) - (m.sentiment_negative || 0);
+    const netEl = document.getElementById('netSentiment');
+    netEl.textContent = (net >= 0 ? '+' : '') + net;
+    netEl.className = 'display text-[24px] leading-none tabular ' + (net > 0 ? 'text-ok' : net < 0 ? 'text-bad' : '');
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('callsBody');
+    const empty = document.getElementById('emptyState');
+    let rows = (state.metrics.recent_calls || []).slice();
+    if (state.outcomeFilter !== 'all') rows = rows.filter(r => r.outcome === state.outcomeFilter);
+
+    document.getElementById('recentCount').textContent = rows.length;
+
+    if (state.metrics.total_calls === 0) {
+      empty.classList.remove('hidden');
+      empty.classList.add('flex');
+      tbody.innerHTML = '';
+      return;
+    }
+    empty.classList.add('hidden');
+    empty.classList.remove('flex');
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-[13px] text-ink-400 dark:text-zinc-500">No calls match this filter.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const om = OUTCOME_META[r.outcome] || OUTCOME_META.no_match;
+      const sm = r.sentiment ? SENT_META[r.sentiment] : null;
+      const tDate = new Date(r.timestamp);
+      const niceTime = tDate.toLocaleString('en-US', { month: 'short', day: 'numeric' }) + ', ' +
+                       tDate.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return `
+      <tr class="row-hover border-t border-black/[.05] dark:border-white/[.05] transition cursor-pointer">
+        <td class="px-6 py-3 row-cell">
+          <div class="text-[12.5px] font-medium">${niceTime}</div>
+          <div class="text-[10.5px] text-ink-400 dark:text-zinc-500 mono">${r.call_id}</div>
+        </td>
+        <td class="py-3 row-cell">
+          <div class="text-[13px] font-medium ${r.carrier_name ? '' : 'italic text-ink-400 dark:text-zinc-500'}">
+            ${r.carrier_name || 'Unknown carrier'}
+          </div>
+        </td>
+        <td class="py-3 row-cell mono text-[12px] text-ink-500 dark:text-zinc-400">${r.mc_number || '—'}</td>
+        <td class="py-3 row-cell">
+          <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11.5px] font-medium" style="background:${om.tint}; color:${om.color}">
+            <span class="w-1.5 h-1.5 rounded-full" style="background:${om.color}"></span>
+            ${om.label}
+          </span>
+        </td>
+        <td class="py-3 row-cell">
+          ${sm ? `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[11.5px] font-medium" style="background:${sm.tint}; color:${sm.color}">
+            <span class="w-1.5 h-1.5 rounded-full" style="background:${sm.color}"></span>
+            ${sm.label}
+          </span>` : `<span class="text-ink-400 dark:text-zinc-500 text-[12px]">—</span>`}
+        </td>
+        <td class="py-3 row-cell text-right tabular ${r.agreed_rate != null ? 'font-semibold' : 'text-ink-400 dark:text-zinc-500'}">${fmtMoney(r.agreed_rate)}</td>
+        <td class="px-6 py-3 row-cell text-right tabular text-[12.5px]">${r.negotiation_rounds}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderRangePicker() {
+    document.querySelectorAll('.range-btn').forEach(b => {
+      const active = b.dataset.range === state.range;
+      b.className = 'range-btn px-3 h-8 text-[12.5px] rounded-md font-medium transition ' +
+        (active
+          ? 'bg-ink-900 text-white dark:bg-white dark:text-ink-900'
+          : 'text-ink-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white');
+    });
+  }
+  function renderOutcomeFilter() {
+    document.querySelectorAll('.of-btn').forEach(b => {
+      const active = b.dataset.of === state.outcomeFilter;
+      b.className = 'of-btn px-2.5 h-7 text-[11.5px] rounded-md font-medium transition ' +
+        (active
+          ? 'bg-paper dark:bg-night-700 text-ink-900 dark:text-white shadow-sm'
+          : 'text-ink-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white');
+    });
+  }
+  function renderTweaks() {
+    document.querySelectorAll('[data-tweak]').forEach(group => {
+      const key = group.dataset.tweak;
+      group.querySelectorAll('.tweak-opt').forEach(b => {
+        const active = b.dataset.val === state[key];
+        b.className = 'tweak-opt h-8 text-[12px] rounded-md font-medium transition ' +
+          (group.classList.contains('grid')
+            ? (active ? 'bg-ink-900 text-white dark:bg-white dark:text-ink-900' : 'bg-black/[.04] dark:bg-white/[.05] hover:bg-black/[.08] dark:hover:bg-white/[.08]')
+            : (active ? 'bg-paper dark:bg-night-700 shadow-sm text-ink-900 dark:text-white flex-1' : 'text-ink-500 dark:text-zinc-400 hover:text-ink-900 dark:hover:text-white flex-1'));
+      });
+    });
+  }
+
+  function render() {
+    if (!state.metrics) return;
+    renderKPIs();
+    renderCharts();
+    renderTable();
+    renderRangePicker();
+    renderOutcomeFilter();
+    document.getElementById('lastUpdated').textContent = fmtUpdated(state.lastFetch);
+  }
+
+  async function refresh() {
+    await fetchMetrics();
+    // If using mock + API key already set, recompute on filter change
+    render();
+  }
+
+  // ╔══════════════════════════════════════════╗
+  // ║  API KEY MODAL                            ║
+  // ╚══════════════════════════════════════════╝
+  function showApiModal(errMsg) {
+    const m = document.getElementById('apiModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    document.getElementById('apiKeyInput').focus();
+    const errEl = document.getElementById('apiKeyError');
+    if (errMsg) { errEl.textContent = errMsg; errEl.classList.remove('hidden'); }
+    else errEl.classList.add('hidden');
+  }
+  function hideApiModal() {
+    const m = document.getElementById('apiModal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+
+  // ╔══════════════════════════════════════════╗
+  // ║  EVENT WIRING                             ║
+  // ╚══════════════════════════════════════════╝
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    applyTheme();
+    notifyTweak('theme', state.theme);
+  });
+
+  document.getElementById('rangePicker').addEventListener('click', (e) => {
+    const btn = e.target.closest('.range-btn');
+    if (!btn) return;
+    state.range = btn.dataset.range;
+    localStorage.setItem('range', state.range);
+    refresh();
+  });
+
+  document.getElementById('outcomeFilter').addEventListener('click', (e) => {
+    const btn = e.target.closest('.of-btn');
+    if (!btn) return;
+    state.outcomeFilter = btn.dataset.of;
+    renderTable();
+    renderOutcomeFilter();
+  });
+
+  // API modal
+  document.getElementById('apiKeySubmit').addEventListener('click', () => {
+    const v = document.getElementById('apiKeyInput').value.trim();
+    if (!v) { showApiModal('Please enter your API key.'); return; }
+    localStorage.setItem('api_key', v);
+    state.apiKey = v;
+    state.useMock = false;
+    hideApiModal();
+    refresh();
+  });
+  document.getElementById('apiKeyInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('apiKeySubmit').click();
+  });
+  document.getElementById('useDemoBtn').addEventListener('click', () => {
+    state.useMock = true;
+    hideApiModal();
+    refresh();
+  });
+
+  // ╔══════════════════════════════════════════╗
+  // ║  TWEAKS PANEL (host protocol)             ║
+  // ╚══════════════════════════════════════════╝
+  const tweaksPanel = document.getElementById('tweaksPanel');
+  function showTweaks() { tweaksPanel.classList.remove('hidden'); renderTweaks(); }
+  function hideTweaks() { tweaksPanel.classList.add('hidden'); }
+
+  window.addEventListener('message', (e) => {
+    if (!e.data || typeof e.data !== 'object') return;
+    if (e.data.type === '__activate_edit_mode') showTweaks();
+    if (e.data.type === '__deactivate_edit_mode') hideTweaks();
+  });
+  // Announce tweaks availability AFTER listener installed
+  try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch {}
+
+  document.getElementById('tweaksClose').addEventListener('click', () => {
+    hideTweaks();
+    try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch {}
+  });
+
+  function notifyTweak(key, val) {
+    try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*'); } catch {}
+  }
+
+  document.querySelectorAll('[data-tweak]').forEach(group => {
+    const key = group.dataset.tweak;
+    group.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tweak-opt');
+      if (!btn) return;
+      const val = btn.dataset.val;
+      state[key] = val;
+      localStorage.setItem(key, val);
+      if (key === 'theme') applyTheme();
+      if (key === 'density') applyDensity();
+      if (key === 'scenario') refresh();
+      renderTweaks();
+      notifyTweak(key, val);
+    });
+  });
+
+  document.getElementById('resetKeyBtn').addEventListener('click', () => {
+    localStorage.removeItem('api_key');
+    state.apiKey = null;
+    state.useMock = true;
+    showApiModal();
+  });
+
+  // ╔══════════════════════════════════════════╗
+  // ║  INIT                                     ║
+  // ╚══════════════════════════════════════════╝
+  applyTheme();
+  applyDensity();
+  refresh();
+
+  // Auto-refresh every 30s
+  setInterval(refresh, 30000);
+  // Tick the "updated Xs ago" label every 10s
+  setInterval(() => { document.getElementById('lastUpdated').textContent = fmtUpdated(state.lastFetch); }, 10000);
+
+  // First-visit API key prompt — show modal if no key AND there's no localStorage signal of "use demo"
+  // (We default to demo mode, so the modal is non-blocking; user can dismiss with "use demo")
+  if (!state.apiKey && !sessionStorage.getItem('dismissedApiPrompt')) {
+    // Show demo immediately, then prompt softly
+    setTimeout(() => {
+      if (!state.apiKey) {
+        sessionStorage.setItem('dismissedApiPrompt', '1');
+        // soft-prompt: do NOT auto-show modal; let user open via "Reset API key" or 401.
+        // (For interview demo we want the dashboard visible immediately.)
+      }
+    }, 100);
+  }
+  </script>
+</body>
+</html>
