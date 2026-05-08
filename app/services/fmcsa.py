@@ -49,13 +49,21 @@ async def verify_carrier(mc_number: str) -> dict:
                 "rejection_reason": "Carrier has an Unsatisfactory safety rating",
             }
 
-        bipd_required = carrier.get("bipdInsuranceRequired", "N")
         bipd_on_file = carrier.get("bipdInsuranceOnFile", "N")
-        if bipd_required == "Y" and bipd_on_file != "Y":
+        if bipd_on_file != "Y":
             return {
                 "verified": False,
                 "carrier_name": carrier.get("legalName"),
                 "rejection_reason": "Required liability insurance not on file with FMCSA",
+            }
+
+        common_auth = carrier.get("commonAuthorityStatus", "")
+        contract_auth = carrier.get("contractAuthorityStatus", "")
+        if common_auth != "A" and contract_auth != "A":
+            return {
+                "verified": False,
+                "carrier_name": carrier.get("legalName"),
+                "rejection_reason": "Carrier does not have active operating authority",
             }
 
         return {
