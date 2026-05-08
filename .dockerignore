@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.env
+*.db
+.git
+.pytest_cache
+.venv
+docs/
+PLATFORM_GUIDE.md
+DASHBOARD_CONTEXT.md
