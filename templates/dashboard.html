@@ -792,20 +792,24 @@ async function fetchMetrics() {
       negotiation_rounds: c.negotiation_rounds === '' ? 0 : (c.negotiation_rounds || 0),
       sentiment: c.sentiment === '' ? null : c.sentiment,
     }));
-    state.loads = (loadsData.loads || []).map(l => ({
-      id: l.load_id,
-      lane: l.origin + ' → ' + l.destination,
-      equipment: l.equipment_type,
-      weight: l.weight,
-      listed_rate: l.loadboard_rate,
-      agreed_rate: null,
-      status: 'open',
-      pickup: l.pickup_datetime,
-      delivery: l.delivery_datetime,
-      calls: 0,
-      bookings: 0,
-      miles: l.miles,
-    }));
+    state.loads = (loadsData.loads || []).map(l => {
+      const matchedCalls = state.rawCalls.filter(c => c.load_id === l.load_id);
+      const bookedCall = matchedCalls.find(c => c.outcome === 'booked');
+      return {
+        id: l.load_id,
+        lane: [l.origin, l.destination],
+        equipment: l.equipment_type,
+        weight: l.weight || 0,
+        listed_rate: l.loadboard_rate,
+        agreed_rate: bookedCall ? (bookedCall.agreed_rate || null) : null,
+        status: bookedCall ? 'covered' : 'open',
+        pickup: l.pickup_datetime,
+        delivery: l.delivery_datetime,
+        calls: matchedCalls.length,
+        bookings: bookedCall ? 1 : 0,
+        miles: l.miles || 0,
+      };
+    });
     state.carriers = aggregateCarriersLive(state.rawCalls);
     state.lastFetch = new Date();
     document.getElementById('dataSourceBadge').textContent = 'live';
