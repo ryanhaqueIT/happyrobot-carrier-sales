@@ -760,8 +760,10 @@ function applyDensity() {
 // ──────────────────────────────────────────────────────
 // FETCH / REFRESH
 // ──────────────────────────────────────────────────────
+const PUBLIC_API_KEY = 'acme-carrier-sales-2026';
+
 async function fetchMetrics() {
-  if (state.useMock || !state.apiKey) {
+  if (state.useMock) {
     state.loads = generateLoads();
     state.rawCalls = generateCalls(state.scenario, state.loads);
     state.metrics = computeMetrics(filterByRange(state.rawCalls, state.range));
@@ -771,15 +773,15 @@ async function fetchMetrics() {
     updateCounters();
     return;
   }
+  const apiKey = state.apiKey || PUBLIC_API_KEY;
+  state.apiKey = apiKey;
   try {
     const [metricsRes, loadsRes] = await Promise.all([
-      fetch('/metrics', { headers: { 'X-API-Key': state.apiKey } }),
-      fetch('/loads', { headers: { 'X-API-Key': state.apiKey } }),
+      fetch('/metrics', { headers: { 'X-API-Key': apiKey } }),
+      fetch('/loads', { headers: { 'X-API-Key': apiKey } }),
     ]);
     if (metricsRes.status === 401) {
-      localStorage.removeItem('api_key'); state.apiKey = null; state.useMock = true;
-      showApiModal('Your API key was rejected. Reconnect or continue with demo data.');
-      return;
+      throw new Error('HTTP 401 — invalid key');
     }
     if (!metricsRes.ok) throw new Error('HTTP ' + metricsRes.status);
     const data = await metricsRes.json();
