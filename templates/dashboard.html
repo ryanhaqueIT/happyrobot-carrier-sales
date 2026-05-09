@@ -788,9 +788,10 @@ async function fetchMetrics() {
     state.rawCalls = (data.recent_calls || []).map((c, i) => ({
       ...c,
       carrier_idx: i,
-      agreed_rate: c.agreed_rate === '' ? null : c.agreed_rate,
-      negotiation_rounds: c.negotiation_rounds === '' ? 0 : (c.negotiation_rounds || 0),
+      agreed_rate: c.agreed_rate === '' || c.agreed_rate == null ? null : Number(c.agreed_rate),
+      negotiation_rounds: c.negotiation_rounds === '' ? 0 : (Number(c.negotiation_rounds) || 0),
       sentiment: c.sentiment === '' ? null : c.sentiment,
+      duration_sec: c.call_duration === '' || c.call_duration == null ? 0 : Number(c.call_duration),
     }));
     const now = new Date();
     state.loads = (loadsData.loads || []).map(l => {
@@ -1330,7 +1331,7 @@ function renderCalls() {
               <td class="py-2.5 row-cell">${outcomePill(r.outcome)}</td>
               <td class="py-2.5 row-cell">${sentimentPill(r.sentiment)}</td>
               <td class="py-2.5 row-cell mono text-[11.5px] text-ink-500">${r.load_id || '—'}</td>
-              <td class="py-2.5 row-cell text-right tabular text-[11.5px]">${Math.floor(r.duration_sec/60)}:${(r.duration_sec%60).toString().padStart(2,'0')}</td>
+              <td class="py-2.5 row-cell text-right tabular text-[11.5px]">${fmtDuration(r.duration_sec || r.call_duration)}</td>
               <td class="py-2.5 row-cell text-right tabular ${r.agreed_rate != null ? 'font-semibold' : 'text-ink-400'}">${fmtMoney(r.agreed_rate)}</td>
               <td class="px-5 py-2.5 row-cell text-right tabular text-[12px]">${r.negotiation_rounds}</td>
             </tr>`).join('')}
@@ -1781,7 +1782,7 @@ function drawerHtml(c) {
     <div class="p-5 space-y-5">
       <!-- Header -->
       <div>
-        <div class="kicker-caps mb-1">${fmtDayTime(c.timestamp)} · ${Math.floor(c.duration_sec/60)}:${(c.duration_sec%60).toString().padStart(2,'0')}</div>
+        <div class="kicker-caps mb-1">${fmtDayTime(c.timestamp)} · ${fmtDuration(c.duration_sec || c.call_duration)}</div>
         <div class="text-[20px] font-semibold tracking-tightish ${c.carrier_name ? '' : 'italic text-ink-400'}">${c.carrier_name || 'Unknown carrier'}</div>
         <div class="flex items-center gap-2 mt-2 flex-wrap">
           ${outcomePill(c.outcome)}
@@ -1803,7 +1804,7 @@ function drawerHtml(c) {
         </div>
         <div class="rounded-lg hairline p-3">
           <div class="kicker-caps mb-1.5">Duration</div>
-          <div class="text-[18px] font-semibold tabular">${Math.floor(c.duration_sec/60)}:${(c.duration_sec%60).toString().padStart(2,'0')}</div>
+          <div class="text-[18px] font-semibold tabular">${fmtDuration(c.duration_sec || c.call_duration)}</div>
         </div>
       </div>
 
