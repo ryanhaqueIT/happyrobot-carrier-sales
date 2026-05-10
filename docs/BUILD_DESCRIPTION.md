@@ -5,6 +5,19 @@
 
 ---
 
+## Links
+
+| | |
+|---|---|
+| **Dashboard** | https://happyrobot-carrier-sales-production-95a3.up.railway.app/dashboard |
+| **5-min walkthrough video** | https://youtu.be/kpDW6EkYlXc |
+| **HappyRobot workflow** | https://platform.happyrobot.ai/fderyanhaque/workflows/t2b82xfysmjd |
+| **Source code** | https://github.com/ryanhaqueIT/happyrobot-carrier-sales |
+
+API key for the dashboard: `acme-carrier-sales-2026`
+
+---
+
 ## What we built
 
 An AI voice agent that answers your inbound carrier calls 24/7. When a carrier calls looking for a load, the agent verifies them with FMCSA, matches them to your available freight, negotiates the rate within parameters you set, and books the load — without a human on the line.
@@ -70,20 +83,3 @@ Auto-refreshes every 30 seconds. Works on desktop and mobile. Light and dark the
 - **Live market rate intelligence** (DAT / Truckstop) so the agent can reference current spot rates during negotiation
 - **Repeat carrier recognition** — recognise the carrier on call two, surface their last successful lane
 - **TMS push** — booked loads flow directly into Transport Pro / McLeod, no manual re-entry
-
----
-
-## Try it
-
-| | |
-|---|---|
-| **Dashboard** | https://happyrobot-carrier-sales-production-95a3.up.railway.app/dashboard |
-| **5-min walkthrough video** | https://youtu.be/kpDW6EkYlXc |
-| **HappyRobot workflow** | https://platform.happyrobot.ai/fderyanhaque/workflows/t2b82xfysmjd |
-| **Source code** | https://github.com/ryanhaqueIT/happyrobot-carrier-sales |
-
-**Test it yourself:**
-- MC `728261` → passes verification, lets you negotiate a load
-- MC `728262` → real registered carrier, but FMCSA shows no insurance — agent politely rejects
-
-API key for the dashboard: `acme-carrier-sales-2026`
