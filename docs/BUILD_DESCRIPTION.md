@@ -64,22 +64,3 @@ A single page Acme leadership opens to answer "how are we doing today?"
 
 Auto-refreshes every 30 seconds. Works on desktop and mobile. Light and dark themes.
 
----
-
-## Why you can trust it
-
-- **HTTPS** on every endpoint
-- **API key authentication** so only your systems can talk to ours
-- **FMCSA-backed verification** — the same federal source brokers are required to check before tendering freight
-- **Containerised and reproducible** — full deployment instructions in the repo, can be redeployed in 10 minutes
-- **Open code** — public repository, full commit history, automated tests covering every endpoint
-- **Persistent storage** — every call recorded survives every deploy
-
----
-
-## What's next (suggested phase 2)
-
-- **Real warm transfer** to a sales rep with carrier context pre-populated
-- **Live market rate intelligence** (DAT / Truckstop) so the agent can reference current spot rates during negotiation
-- **Repeat carrier recognition** — recognise the carrier on call two, surface their last successful lane
-- **TMS push** — booked loads flow directly into Transport Pro / McLeod, no manual re-entry
