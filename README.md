@@ -22,29 +22,23 @@ A working proof-of-concept for **Acme Logistics**: an AI voice agent on the [Hap
 ## Screenshots
 
 ### Dashboard — Overview
-> _Replace this with a screenshot of the dashboard overview page (KPIs, outcomes, sentiment, recent calls)._
 
-![Dashboard Overview](docs/screenshots/dashboard-overview.png)
+<img width="2842" height="1530" alt="image" src="https://github.com/user-attachments/assets/a95550f6-6b42-4d9a-afea-4526a87439d3" />
+
 
 ### Dashboard — Loads
-> _Replace this with a screenshot of the loads board view._
 
-![Loads](docs/screenshots/dashboard-loads.png)
+<img width="2840" height="1429" alt="image" src="https://github.com/user-attachments/assets/a9020f6a-2507-49d1-89a6-516e39e5ef46" />
 
-### Dashboard — Carriers
-> _Replace this with a screenshot of the carriers view aggregated by MC #._
-
-![Carriers](docs/screenshots/dashboard-carriers.png)
 
 ### Dashboard — Call detail drawer
-> _Replace this with a screenshot of an opened call detail drawer (transcript, extracted fields, matched load)._
+  <img width="2861" height="1528" alt="image" src="https://github.com/user-attachments/assets/9c6e7c1f-cfac-4774-9818-fe50b45a2769" />
 
-![Call Detail](docs/screenshots/dashboard-call-detail.png)
 
 ### HappyRobot Workflow
-> _Replace this with a screenshot of the workflow editor showing trigger → voice agent (with prompt + tools) → AI Classify → AI Extract → POST webhook._
+<img width="2866" height="1484" alt="image" src="https://github.com/user-attachments/assets/dfe544b6-d6ed-4ce4-90b0-d553ab6fea7b" />
 
-![HappyRobot Workflow](docs/screenshots/happyrobot-workflow.png)
+<img width="2871" height="1536" alt="image" src="https://github.com/user-attachments/assets/0125ed40-7dc3-44a1-a451-ed1eb876670f" />
 
 ---
 
