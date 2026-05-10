@@ -13,7 +13,7 @@ A working proof-of-concept for **Acme Logistics**: an AI voice agent on the [Hap
 | **API docs (Swagger)** | https://happyrobot-carrier-sales-production-95a3.up.railway.app/docs |
 | **HappyRobot workflow** | https://platform.happyrobot.ai/fderyanhaque/workflows/t2b82xfysmjd |
 | **Code repo** | https://github.com/ryanhaqueIT/happyrobot-carrier-sales |
-| **Walkthrough video** | _(add YouTube link here once uploaded)_ |
+| **Walkthrough video** | https://youtu.be/kpDW6EkYlXc |
 
 **API Key for dashboard / endpoints:** `acme-carrier-sales-2026`
 
